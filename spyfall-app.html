@@ -1,0 +1,257 @@
+<link
+    rel="import"
+    href="/bower_components/polymer/polymer.html">
+
+<link
+    rel="import"
+    href="/bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link
+    rel="import"
+    href="/bower_components/iron-localstorage/iron-localstorage.html">
+
+<link
+    rel="import"
+    href="/bower_components/paper-button/paper-button.html">
+<link
+    rel="import"
+    href="/bower_components/paper-card/paper-card.html">
+<link
+    rel="import"
+    href="/bower_components/paper-input/paper-input.html">
+
+<link
+    rel="import"
+    href="/bower_components/app-route/app-location.html">
+<link
+    rel="import"
+    href="/bower_components/app-route/app-route.html">
+
+<dom-module id="spyfall-app">
+
+  <style include="iron-flex"></style>
+
+  <template>
+
+    <app-location route="{{route}}" use-hash-as-path></app-location>
+
+    <app-route
+        route="{{route}}"
+        pattern="/:pageName"
+        data="{{page}}">
+    </app-route>
+
+    <iron-localstorage
+      name="spyfall.players"
+      value="{{players}}">
+    <iron-localstorage
+      name="spyfall.player"
+      value="{{player}}">
+    <iron-localstorage
+      name="spyfall.location"
+      value="{{location}}">
+    <iron-localstorage
+      name="spyfall.spy"
+      value="{{spy}}">
+      
+    </iron-localstorage>
+
+    <paper-card hidden$="[[!show(page.pageName, '')]]">
+
+      <h3>Instructions</h3>
+      <p>
+        Spyfall is a game for 3+ players. Each round, players are given a secret
+        location from a predefined list (like "Airplane" or "Ocean Liner"). One
+        player is not given the location (the "Spy"). Play starts with one
+        player asking another player a question (like, "why are we dressed so
+        funny"). The questioned player must answer, and then gets to ask the
+        next question. At any point in time, any player may announce who they
+        think is the Spy. If the other players agree, the round stops and the
+        identified player must reveal themselves. If they are the Spy, all
+        non-Spy players gain a point. Also at any point in time, the Spy may
+        choose to guess the secret location. If they are correct, the Spy gains
+        one point. Regardless, the round ends. Play can continue for a set
+        number of rounds, or until all players have had a chance to be the Spy.
+      </p>
+
+      <h3>Locations</h3>
+      <template is="dom-repeat" items="[[locations]]" as="location">
+        <li>[[location]]</li>
+      </template>
+
+      <h3>New Round</h3>
+      <paper-input
+          label="Players"
+          type="number"
+          min="3"
+          value="{{players}}">
+      </paper-input>
+      <paper-button on-tap="newGame" raised>Start</paper-button>
+
+      <h3>Last Round</h3>
+
+      <div>
+        <p id="spy" hidden>Spy: Player [[spy]]</p>
+        <paper-button on-tap="revealSpy" raised>
+          Reveal The Spy
+        </paper-button>
+      </div>
+
+      <div>
+        <p id="location" hidden>Location: [[location]]</p>
+        <paper-button on-tap="revealLocation" raised>
+          Reveal The Location
+        </paper-button>
+      </div>
+
+    </paper-card>
+
+    <paper-card hidden$="[[!show(page.pageName, 'view')]]">
+      <h3>Player [[player]] / [[players]]</h3>
+      <p>
+        Memorize the secret location, then hit "Done" and hand the phone to the
+        next player.
+      </p>
+      <p hidden$="[[!isSpy(player, spy)]]">
+        Location: unknown - You are the Spy!
+      </p>
+      <p hidden$="[[isSpy(player, spy)]]">
+        Location: [[location]]
+      </p>
+      <paper-button
+          on-tap="viewDone"
+          raised>
+        Done
+      </paper-button>
+    </paper-card>
+
+    <paper-card hidden$="[[!show(page.pageName, 'handoff')]]">
+      <h3>Player [[player]] / [[players]]</h3>
+      <p> 
+        Hand the phone to player [[player]].
+      </p>
+      <paper-button
+          on-tap="handoffDone"
+          raised>
+        Ready
+      </paper-button>
+    </paper-card>
+
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'spyfall-app',
+
+      properties: {
+        location: {
+          type: String,
+          value: 'unknown',
+        },
+        player: {
+          type: Number,
+          value: 0,
+        },
+        players: {
+          type: Number,
+          value: 3,
+        },
+        locations: {
+          type: Array,
+          value: () => {
+            return [
+              'Theater',
+              'Restaurant',
+              'Beach',
+              'School',
+              'Supermarket',
+              'Service Station',
+              'Circus Tent',
+              'Hospital',
+              'Crusader Army',
+              'Passenger Train',
+              'Bank',
+              'Airplane',
+              'Police Station',
+              'Pirate Ship',
+              'Movie Studio',
+              'Military Base',
+              'Submarine',
+              'Ocean Liner',
+              'Polar Station',
+              'Hotel',
+              'Corporate Party',
+              'Day Spa',
+              'University',
+              'Embassy',
+              'Space Station',
+              'Casino',
+              'Cathedral'
+            ];
+          },
+        },
+      },
+
+      attached() {
+        if (!window.location.hash.length) {
+          window.location.hash = '#/';
+        }
+      },
+
+      onQueryParamsChanged() {
+        for (let key in this.queryParams) {
+          if (this[key] !== undefined) {
+            this[key] = this.queryParams[key];
+          }
+        }
+      },
+
+      newGame() {
+        if (this.players < 3) {
+          return;
+        }
+        this.player = 1;
+        this.location = this.locations[
+          Math.floor(Math.random()*this.locations.length)
+        ];
+        this.spy = Math.floor(Math.random()*this.players)+1;
+        this.routeTo('handoff');
+      },
+
+      handoffDone() {
+        this.routeTo('view');
+      },
+
+      viewDone() {
+        if (this.player == this.players) {
+          this.player = 0;
+          this.players = 3;
+          this.routeTo('');
+          return;
+        }
+        this.player++;
+        this.routeTo('handoff');
+      },
+
+      revealSpy() {
+        this.$.spy.hidden = false;
+      },
+
+      revealLocation() {
+        this.$.location.hidden = false;
+      },
+
+      show(p1, p2) {
+        return p1 == p2;
+      },
+
+      isSpy(player, spy) {
+        return player == spy;
+      },
+
+      routeTo(page) {
+        window.location.hash = '#/' + page;
+      },
+    });
+  </script>
+</dom-module>
