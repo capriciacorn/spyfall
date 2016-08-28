@@ -24,6 +24,9 @@
 <link
     rel="import"
     href="bower_components/paper-styles/color.html">
+<link
+    rel="import"
+    href="bower_components/paper-toast/paper-toast.html">
 
 <link
     rel="import"
@@ -73,6 +76,8 @@
 
       <div class="card-content">
 
+        <h2 style="margin: 0">Spyfall</h2>
+
         <div class="layout horizontal">
 
           <div class="flex">
@@ -95,9 +100,11 @@
 
           <div class="flex">
             <h3>Locations</h3>
-            <template is="dom-repeat" items="[[locations]]" as="location">
-              <li>[[location]]</li>
-            </template>
+            <ul>
+              <template is="dom-repeat" items="[[locations]]" as="location">
+                <li>[[location]]</li>
+              </template>
+            </ul>
           </div>
 
         </div>
@@ -105,11 +112,17 @@
         <div>
           <h3>New Round</h3>
           <paper-input
+              id="players"
               label="Players"
               type="number"
               min="3"
-              value="{{players}}">
+              value="{{players}}"
+              auto-validate>
           </paper-input>
+          <paper-toast
+              id="morePlayersToast"
+              text="Please enter the number of players (3+)">
+          </paper-toast>
           <paper-button
               on-tap="newGame"
               class="primary"
@@ -263,11 +276,15 @@
             ];
           },
         },
+        route: {
+          type: String,
+          observer: 'routeChanged',
+        },
       },
 
-      attached() {
-        if (this.page.pageName === undefined) {
-          this.routeTo('');
+      routeChanged() {
+        if (this.page == undefined || this.page.pageName === undefined || this.page.pageName == '') {
+          window.location.hash = '#/';
         }
       },
 
@@ -281,6 +298,8 @@
 
       newGame() {
         if (this.players < 3) {
+          this.$.morePlayersToast.open();
+          this.$.players.invalid = true;
           return;
         }
         this.player = 1;
@@ -288,22 +307,24 @@
           Math.floor(Math.random()*this.locations.length)
         ];
         this.spy = Math.floor(Math.random()*this.players)+1;
-        this.routeTo('view');
+        window.location.hash = '#/view';
       },
 
       handoffDone() {
-        this.routeTo('view');
+        window.history.replaceState({}, null, '#/view');
+        window.dispatchEvent(new CustomEvent('location-changed'));
       },
 
       viewDone() {
         if (this.player == this.players) {
           this.player = 0;
           this.players = 3;
-          this.routeTo('');
+          window.location.hash = '#/';
           return;
         }
         this.player++;
-        this.routeTo('handoff');
+        window.history.replaceState({}, null, '#/handoff');
+        window.dispatchEvent(new CustomEvent('location-changed'));
       },
 
       revealSpy() {
@@ -327,8 +348,6 @@
       },
 
       routeTo(page) {
-        window.history.replaceState({}, null, '#/' + page);
-        window.dispatchEvent(new CustomEvent('location-changed'));
       },
     });
   </script>
