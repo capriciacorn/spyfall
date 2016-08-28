@@ -21482,7 +21482,7 @@ the `app-route` will update `route.path`. This in-turn will update the
         },
         locations: {
           type: Array,
-          value: () => {
+          value: function() {
             return [
               'Theater',
               'Restaurant',
@@ -21527,7 +21527,7 @@ the `app-route` will update `route.path`. This in-turn will update the
       },
 
       onQueryParamsChanged() {
-        for (let key in this.queryParams) {
+        for (var key in this.queryParams) {
           if (this[key] !== undefined) {
             this[key] = this.queryParams[key];
           }
